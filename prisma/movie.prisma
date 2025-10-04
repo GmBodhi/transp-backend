@@ -1,0 +1,44 @@
+model Movie {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String
+  description  String?
+  releaseDate  DateTime      @map("release_date")
+  duration     Int           // duration in minutes
+  language     String
+  genre        String[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  distributors Distributor[]
+
+  @@map("movies")
+}
+
+model Distributor {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String    @unique
+  phone     String?
+  movieId   String    @map("movie_id") @db.Uuid
+  movie     Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  theatres  Theatre[]
+
+  @@map("distributors")
+}
+
+model Theatre {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  location       String
+  city           String
+  state          String
+  pincode        String
+  screenCount    Int         @map("screen_count")
+  distributorId  String      @map("distributor_id") @db.Uuid
+  distributor    Distributor @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  @@map("theatres")
+}
