@@ -1,0 +1,13 @@
+model Distributor {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String    @unique
+  phone     String?
+  movieId   String    @map("movie_id") @db.Uuid
+  movie     Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  theatres  Theatre[]
+
+  @@map("distributors")
+}

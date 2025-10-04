@@ -3,7 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './modules/prisma/prisma.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { BmsModule } from './modules/bms/bms.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PrismaModule } from './modules/prisma/prisma.module';
     }),
     PrismaModule,
     AuthModule,
+    BmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

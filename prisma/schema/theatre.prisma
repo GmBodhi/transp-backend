@@ -1,0 +1,18 @@
+model Theatre {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String
+  region         String
+  data           Json?
+  name           String?
+  location       String?
+  city           String?
+  state          String?
+  pincode        String?
+  screenCount    Int?         @map("screen_count")
+  distributorId  String?      @map("distributor_id") @db.Uuid
+  distributor    Distributor? @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@map("theatres")
+}

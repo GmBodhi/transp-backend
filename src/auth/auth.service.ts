@@ -9,7 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { User, JwtPayload, TokenPair } from './interfaces/user.interface';
 import { LoginDto } from './dto/auth.dto';
 import { Role } from './enums/role.enum';
-import { PrismaService } from '../modules/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AuthService {

@@ -1,0 +1,14 @@
+model Movie {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String
+  description  String?
+  releaseDate  DateTime      @map("release_date")
+  duration     Int           // duration in minutes
+  language     String
+  genre        String[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  distributors Distributor[]
+
+  @@map("movies")
+}
