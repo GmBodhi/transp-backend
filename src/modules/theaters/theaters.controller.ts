@@ -2,11 +2,19 @@ import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TheatersService } from './theaters.service';
 import { AddTheatersDto } from './dto/add-theaters.dto';
+import { CreateTheaterDto } from './dto/create-theater.dto';
 
 @ApiTags('Theaters')
 @Controller('api/movies/:movieId/distributors/:distributorId/theaters')
 export class TheatersController {
   constructor(private readonly theatersService: TheatersService) {}
+
+  @Post('create')
+  @ApiOperation({ summary: 'Create a new theater' })
+  @ApiResponse({ status: 201, description: 'Theater created successfully' })
+  create(@Body() createTheaterDto: CreateTheaterDto) {
+    return this.theatersService.create(createTheaterDto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get all theaters for a distributor' })

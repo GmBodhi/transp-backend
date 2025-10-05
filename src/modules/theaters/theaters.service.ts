@@ -1,10 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddTheatersDto } from './dto/add-theaters.dto';
+import { CreateTheaterDto } from './dto/create-theater.dto';
 
 @Injectable()
 export class TheatersService {
   constructor(private prisma: PrismaService) {}
+
+  async create(createTheaterDto: CreateTheaterDto) {
+    return this.prisma.theatre.create({
+      data: createTheaterDto,
+    });
+  }
 
   async findByDistributor(movieId: string, distributorId: string) {
     // Verify distributor belongs to movie
