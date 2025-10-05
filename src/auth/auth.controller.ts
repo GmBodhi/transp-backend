@@ -1,53 +1,28 @@
-import {
-  Controller,
-  Post,
-  Body,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
+import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import type { LoginDto } from './dto/auth.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import type { JwtPayload, TokenPair } from './interfaces/user.interface';
+import type { LoginDto, SignupDto } from './dto/auth.dto';
+import type { User } from './interfaces/user.interface';
 
 @ApiTags('Authentication')
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Successfully logged in' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto): Promise<TokenPair> {
+  async login(@Body() loginDto: LoginDto): Promise<{ user: Omit<User, 'password'>; token: string }> {
+    console.log('Login attempt for user:', loginDto);
     return this.authService.login(loginDto);
   }
 
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(AuthGuard('jwt-refresh'))
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
-  async refresh(@CurrentUser() user: JwtPayload): Promise<TokenPair> {
-    return this.authService.refreshTokens(user);
-  }
-
-  @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'User logout' })
-  @ApiResponse({ status: 200, description: 'Successfully logged out' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  logout(@CurrentUser() user: JwtPayload): { message: string } {
-    this.authService.logout(user.sub);
-    return { message: 'Logged out successfully' };
+  @Post('signup')
+  @ApiOperation({ summary: 'User registration' })
+  @ApiResponse({ status: 201, description: 'Successfully registered' })
+  @ApiResponse({ status: 400, description: 'User already exists' })
+  async signup(@Body() signupDto: SignupDto): Promise<{ user: Omit<User, 'password'>; token: string }> {
+    return this.authService.signup(signupDto);
   }
 }

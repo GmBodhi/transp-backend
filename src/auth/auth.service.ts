@@ -3,43 +3,47 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
-import { User, JwtPayload, TokenPair } from './interfaces/user.interface';
-import { LoginDto } from './dto/auth.dto';
+import { User } from './interfaces/user.interface';
+import { LoginDto, SignupDto } from './dto/auth.dto';
 import { Role } from './enums/role.enum';
 import { PrismaService } from '../prisma/prisma.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
-  // Token versions for rotation (consider moving to database in production)
-  private tokenVersions: Map<string, number> = new Map();
-
-  constructor(
-    private jwtService: JwtService,
-    private configService: ConfigService,
-    private prisma: PrismaService,
-  ) {
+  constructor(private prisma: PrismaService) {
     // Initialize with demo users
     void this.initializeDemoUsers();
+  }
+
+  // Generate a non-expiring token
+  private generateToken(userId: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(
+        `${userId}-${Date.now()}-${crypto.randomBytes(16).toString('hex')}`,
+      )
+      .digest('hex');
   }
 
   private async initializeDemoUsers() {
     const demoUsers = [
       {
         email: 'admin@example.com',
-        password: await bcrypt.hash('admin123', 10),
+        name: 'Admin User',
+        password: 'admin123',
         roles: [Role.ADMIN],
       },
       {
         email: 'staff@example.com',
-        password: await bcrypt.hash('staff123', 10),
+        name: 'Staff User',
+        password: 'staff123',
         roles: [Role.STAFF],
       },
       {
         email: 'user@example.com',
-        password: await bcrypt.hash('user123', 10),
+        name: 'Regular User',
+        password: 'user123',
         roles: [Role.PUBLIC],
       },
     ];
@@ -52,6 +56,7 @@ export class AuthService {
           update: {},
           create: {
             email: user.email,
+            name: user.name,
             password: user.password,
             roles: user.roles,
           },
@@ -62,35 +67,83 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<TokenPair> {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+  async login(
+    loginDto: LoginDto,
+  ): Promise<{ user: Omit<User, 'password'>; token: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: loginDto.email },
+    });
 
-    if (!user) {
+    if (!user || user.password !== loginDto.password) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.generateTokenPair(user);
+    // Generate non-expiring token
+    const token = this.generateToken(user.id);
+
+    // Store token in database
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { token },
+    });
+
+    const { password, ...userWithoutPassword } = user;
+    return {
+      user: {
+        ...userWithoutPassword,
+        roles: user.roles as Role[],
+      },
+      token,
+    };
   }
 
-  async validateUser(email: string, password: string): Promise<User | null> {
-    // Fetch user from database using Prisma
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+  async signup(
+    signupDto: SignupDto,
+  ): Promise<{ user: Omit<User, 'password'>; token: string }> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: signupDto.email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException('User already exists');
+    }
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: signupDto.email,
+        password: signupDto.password,
+        name: signupDto.name,
+        roles: [Role.ADMIN],
+      },
+    });
+
+    // Generate non-expiring token
+    const token = this.generateToken(user.id);
+
+    // Store token in database
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { token },
+    });
+
+    const { password, ...userWithoutPassword } = user;
+    return {
+      user: {
+        ...userWithoutPassword,
+        roles: user.roles as Role[],
+      },
+      token,
+    };
+  }
+
+  // Validate token and return user
+  async validateToken(token: string): Promise<User | null> {
+    const user = await this.prisma.user.findFirst({
+      where: { token },
     });
 
     if (!user) {
       return null;
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return null;
-    }
-
-    // Initialize token version if not exists
-    if (!this.tokenVersions.has(user.id)) {
-      this.tokenVersions.set(user.id, 0);
     }
 
     return {
@@ -103,80 +156,13 @@ export class AuthService {
     };
   }
 
-  validateTokenVersion(userId: string, tokenVersion: number): boolean {
-    const currentVersion = this.tokenVersions.get(userId);
-    return currentVersion === tokenVersion;
-  }
-
-  async refreshTokens(user: JwtPayload): Promise<TokenPair> {
-    // Fetch user from database using Prisma
-    const fullUser = await this.prisma.user.findUnique({
-      where: { id: user.sub },
-    });
-
-    if (!fullUser) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    // Increment token version for rotation
-    const currentVersion = this.tokenVersions.get(fullUser.id) || 0;
-    const newVersion = currentVersion + 1;
-    this.tokenVersions.set(fullUser.id, newVersion);
-
-    const userObj: User = {
-      id: fullUser.id,
-      email: fullUser.email,
-      password: fullUser.password,
-      roles: fullUser.roles as Role[],
-      createdAt: fullUser.createdAt,
-      updatedAt: fullUser.updatedAt,
-    };
-
-    return this.generateTokenPair(userObj, newVersion);
-  }
-
-  logout(userId: string): void {
-    // Invalidate all tokens by incrementing version
-    const currentVersion = this.tokenVersions.get(userId) || 0;
-    this.tokenVersions.set(userId, currentVersion + 1);
-  }
-
-  private generateTokenPair(user: User, tokenVersion?: number): TokenPair {
-    const version =
-      tokenVersion !== undefined
-        ? tokenVersion
-        : this.tokenVersions.get(user.id) || 0;
-
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      roles: user.roles,
-      tokenVersion: version,
-    };
-
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_ACCESS_EXPIRATION'),
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRATION'),
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-    };
-  }
-
   // Helper method to create new users
   async createUser(
     email: string,
     password: string,
+    name: string,
     roles: Role[],
   ): Promise<User> {
-    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -185,18 +171,14 @@ export class AuthService {
       throw new BadRequestException('User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert user using Prisma
     const user = await this.prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        name,
+        password,
         roles,
       },
     });
-
-    this.tokenVersions.set(user.id, 0);
 
     return {
       id: user.id,

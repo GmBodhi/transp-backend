@@ -2,9 +2,12 @@ model User {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email     String   @unique
   password  String
+  name      String
   roles     String[]
+  token     String?  @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  movies    Movie[]
 
   @@map("users")
 }
