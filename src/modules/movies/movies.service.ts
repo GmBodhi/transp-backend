@@ -24,7 +24,7 @@ export class MoviesService {
 
   async findAll(userId: string) {
     return this.prisma.movie.findMany({
-      where: { userId },
+      // where: { userId },
       include: {
         distributors: true,
       },
@@ -33,7 +33,7 @@ export class MoviesService {
 
   async findOne(id: string, userId: string) {
     const movie = await this.prisma.movie.findFirst({
-      where: { id, userId },
+      // where: { id, userId },
       include: {
         distributors: {
           include: {
@@ -81,5 +81,96 @@ export class MoviesService {
     return this.prisma.movie.delete({
       where: { id },
     });
+  }
+
+  async assignStaffByEmail(movieId: string, staffEmail: string, userId: string) {
+    const movie = await this.findOne(movieId, userId);
+
+    // Check if staff user exists and has STAFF role
+    const staffUser = await this.prisma.user.findUnique({
+      where: { email: staffEmail },
+    });
+
+    if (!staffUser) {
+      throw new NotFoundException(`Staff user with email ${staffEmail} not found`);
+    }
+
+    if (!staffUser.roles.includes('STAFF')) {
+      throw new NotFoundException(`User with email ${staffEmail} is not a staff member`);
+    }
+
+    // Check if already assigned
+    if (movie.assignedStaff.includes(staffUser.id)) {
+      return { message: 'Staff already assigned to this movie' };
+    }
+
+    return this.prisma.movie.update({
+      where: { id: movieId },
+      data: {
+        assignedStaff: {
+          push: staffUser.id,
+        },
+      },
+    });
+  }
+
+  async removeStaffByEmail(movieId: string, staffEmail: string, userId: string) {
+    const movie = await this.findOne(movieId, userId);
+
+    // Find staff user by email
+    const staffUser = await this.prisma.user.findUnique({
+      where: { email: staffEmail },
+    });
+
+    if (!staffUser) {
+      throw new NotFoundException(`Staff user with email ${staffEmail} not found`);
+    }
+
+    if (!movie.assignedStaff.includes(staffUser.id)) {
+      throw new NotFoundException(`Staff with email ${staffEmail} is not assigned to this movie`);
+    }
+
+    return this.prisma.movie.update({
+      where: { id: movieId },
+      data: {
+        assignedStaff: movie.assignedStaff.filter(id => id !== staffUser.id),
+      },
+    });
+  }
+
+  async getAssignedStaff(movieId: string, userId: string) {
+    const movie = await this.findOne(movieId, userId);
+
+    const staff = await this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        roles: true,
+      },
+    });
+
+    return staff;
+  }
+
+  async canUserManageMovie(movieId: string, userId: string): Promise<boolean> {
+    return true;
+    const movie = await this.prisma.movie.findUnique({
+      where: { id: movieId },
+    });
+
+
+
+    // if (!movie) {
+    //   return false;
+    // }
+
+    // // Owner can always manage
+    // if (movie.userId === userId) {
+    //   return true;
+    // }
+
+    // // Assigned staff can manage
+    // return movie.assignedStaff.includes(userId);
   }
 }

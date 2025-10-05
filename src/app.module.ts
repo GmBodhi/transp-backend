@@ -9,6 +9,8 @@ import { MoviesModule } from './modules/movies/movies.module';
 import { DistributorsModule } from './modules/distributors/distributors.module';
 import { TheatersModule } from './modules/theaters/theaters.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ShowsModule } from './modules/shows/shows.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     DistributorsModule,
     TheatersModule,
     AnalyticsModule,
+    ShowsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

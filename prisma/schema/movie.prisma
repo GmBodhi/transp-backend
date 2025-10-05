@@ -1,17 +1,18 @@
 model Movie {
-  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String
-  director     String
-  description  String?
-  releaseDate  DateTime      @map("release_date")
-  genre        String
-  duration     Int?          // duration in minutes
-  language     String?
-  userId       String        @map("user_id") @db.Uuid
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  distributors Distributor[]
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  director       String
+  description    String?
+  releaseDate    DateTime      @map("release_date")
+  genre          String
+  duration       Int?          // duration in minutes
+  language       String?
+  userId         String        @map("user_id") @db.Uuid
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedStaff  String[]      @default([]) @map("assigned_staff") @db.Uuid // Array of staff user IDs
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  distributors   Distributor[]
 
   @@map("movies")
 }

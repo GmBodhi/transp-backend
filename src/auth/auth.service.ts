@@ -13,7 +13,7 @@ import * as crypto from 'crypto';
 export class AuthService {
   constructor(private prisma: PrismaService) {
     // Initialize with demo users
-    void this.initializeDemoUsers();
+    // void this.initializeDemoUsers();
   }
 
   // Generate a non-expiring token

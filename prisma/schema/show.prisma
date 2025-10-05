@@ -1,0 +1,25 @@
+model Show {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  timestamp      DateTime
+  screen         String
+  theatre        String
+  theatreData    Json           @map("theatre_data")
+  movieId        String         @map("movie_id") @db.Uuid
+  // distributorId  String         @map("distributor_id") @db.Uuid
+  seatCategories SeatCategory[]
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  @@map("shows")
+}
+
+model SeatCategory {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  showId   String  @map("show_id") @db.Uuid
+  show     Show    @relation(fields: [showId], references: [id], onDelete: Cascade)
+  category String
+  booked   Int     @default(0)
+  price    Decimal @db.Decimal(10, 2)
+
+  @@map("seat_categories")
+}

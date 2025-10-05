@@ -13,7 +13,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Successfully logged in' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Body() loginDto: LoginDto): Promise<{ user: Omit<User, 'password'>; token: string }> {
+  async login(@Body() loginDto: LoginDto) {
     console.log('Login attempt for user:', loginDto);
     return this.authService.login(loginDto);
   }
@@ -22,7 +22,7 @@ export class AuthController {
   @ApiOperation({ summary: 'User registration' })
   @ApiResponse({ status: 201, description: 'Successfully registered' })
   @ApiResponse({ status: 400, description: 'User already exists' })
-  async signup(@Body() signupDto: SignupDto): Promise<{ user: Omit<User, 'password'>; token: string }> {
+  async signup(@Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
   }
 }

@@ -25,15 +25,11 @@ export class BmsService {
 
     try {
       const response = await makeRequest();
-      console.log(response.data);
       return response.data;
     } catch (firstError) {
       // Retry once if first request fails with 403 or other errors
       if (axios.isAxiosError(firstError)) {
         try {
-          console.log(
-            `First request failed (${firstError.response?.status || 'unknown'}), retrying...`,
-          );
           const retryResponse = await makeRequest();
           return retryResponse.data;
         } catch (retryError) {

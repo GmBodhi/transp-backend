@@ -60,4 +60,25 @@ export class MoviesController {
   remove(@Param('id') id: string, @CurrentUser() user: User) {
     return this.moviesService.remove(id, user.id);
   }
+
+  @Post(':id/staff/:staffEmail')
+  @ApiOperation({ summary: 'Assign staff to a movie by email' })
+  @ApiResponse({ status: 200, description: 'Staff assigned successfully' })
+  assignStaff(@Param('id') id: string, @Param('staffEmail') staffEmail: string, @CurrentUser() user: User) {
+    return this.moviesService.assignStaffByEmail(id, staffEmail, user.id);
+  }
+
+  @Delete(':id/staff/:staffEmail')
+  @ApiOperation({ summary: 'Remove staff from a movie by email' })
+  @ApiResponse({ status: 200, description: 'Staff removed successfully' })
+  removeStaff(@Param('id') id: string, @Param('staffEmail') staffEmail: string, @CurrentUser() user: User) {
+    return this.moviesService.removeStaffByEmail(id, staffEmail, user.id);
+  }
+
+  @Get(':id/staff')
+  @ApiOperation({ summary: 'Get all staff assigned to a movie' })
+  @ApiResponse({ status: 200, description: 'Return assigned staff' })
+  getAssignedStaff(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.moviesService.getAssignedStaff(id, user.id);
+  }
 }
